@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Blocked — Productivity Guard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 520px;
+      width: 100%;
+      background: #16213e;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      color: #e94560;
+      margin-bottom: 8px;
+    }
+
+    .header .domain {
+      font-size: 14px;
+      color: #888;
+      word-break: break-all;
+    }
+
+    .url-display {
+      background: #0f3460;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #a0c4ff;
+      word-break: break-all;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #ccc;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      background: #0f3460;
+      border: 1px solid #1a3a6a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    textarea::placeholder {
+      color: #556;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: #e94560;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #c73850;
+    }
+
+    .btn-primary:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+
+    .response {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .response.approved {
+      background: #0a3d2a;
+      border: 1px solid #1a6b45;
+      color: #7dffb3;
+      display: block;
+    }
+
+    .response.denied {
+      background: #3d0a0a;
+      border: 1px solid #6b1a1a;
+      color: #ff7d7d;
+      display: block;
+    }
+
+    .response.error {
+      background: #3d2a0a;
+      border: 1px solid #6b451a;
+      color: #ffc77d;
+      display: block;
+    }
+
+    .response .scope-info {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    .spinner {
+      display: none;
+      text-align: center;
+      margin-top: 16px;
+      color: #888;
+    }
+
+    .spinner.active {
+      display: block;
+    }
+
+    .spinner::after {
+      content: "Evaluating your request...";
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="icon">🛡️</div>
+      <h1>Access Blocked</h1>
+      <div class="domain" id="domain-display"></div>
+    </div>
+
+    <div class="url-display" id="url-display"></div>
+
+    <div class="form-group">
+      <label for="reason">Why do you need access?</label>
+      <textarea
+        id="reason"
+        placeholder="Be specific. 'I need to check something' won't work. Try: 'I'm debugging a BLE scanning error on my ESP32 and this thread has the exact error code I'm seeing.'"
+        autofocus
+      ></textarea>
+    </div>
+
+    <button class="btn btn-primary" id="submit-btn" onclick="submitRequest()">
+      Request Access
+    </button>
+
+    <div class="spinner" id="spinner"></div>
+    <div class="response" id="response"></div>
+  </div>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# Add these to your HA configuration.yaml under rest_command:
+# (or include this file with: rest_command: !include rest_commands.yaml)
+#
+# These allow HA automations to call the Productivity Guard backend API.
+
+# Force-block a device (e.g., when phone enters bedroom)
+productivity_guard_force_block:
+  url: "http://192.168.22.1:8800/force-block"
+  method: POST
+  headers:
+    Content-Type: "application/json"
+  payload: '{"device_ip": "{{ device_ip }}"}'
+  content_type: "application/json"
+
+# Remove force-block from a device (e.g., when phone leaves bedroom)
+productivity_guard_force_unblock:
+  url: "http://192.168.22.1:8800/force-unblock"
+  method: POST
+  headers:
+    Content-Type: "application/json"
+  payload: '{"device_ip": "{{ device_ip }}"}'
+  content_type: "application/json"
+
+# Revoke all active approvals (panic button)
+productivity_guard_revoke_all:
+  url: "http://192.168.22.1:8800/revoke-all"
+  method: POST
+  headers:
+    Content-Type: "application/json"

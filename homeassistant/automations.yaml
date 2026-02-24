@@ -1,0 +1,55 @@
+# Productivity Guard — Home Assistant Automations
+#
+# Add these to your automations.yaml or import them via the HA UI.
+#
+# IMPORTANT: You'll need to verify the exact Bermuda entity IDs for your setup.
+# Check Home Assistant → Developer Tools → States → search for "bermuda" or "ble_room"
+# to find the correct entity names.
+#
+# The room state values (e.g., "bedroom", "living_room") depend on how you've named
+# your Bermuda areas in HA. Update the trigger states below to match your naming.
+
+# ── Phone enters bedroom → force block ──────────────────────────────────────
+
+- id: "pg_phone_bedroom_block"
+  alias: "Productivity Guard: Block phone in bedroom"
+  description: "Force-block phone internet when it enters the bedroom"
+  trigger:
+    - platform: state
+      entity_id: sensor.payson_s25_ble_room
+      to: "bedroom"
+  condition: []
+  action:
+    - service: rest_command.productivity_guard_force_block
+      data:
+        device_ip: "192.168.22.75"
+  mode: single
+
+# ── Phone leaves bedroom → remove force block ───────────────────────────────
+
+- id: "pg_phone_bedroom_unblock"
+  alias: "Productivity Guard: Unblock phone leaving bedroom"
+  description: "Remove force-block when phone leaves the bedroom"
+  trigger:
+    - platform: state
+      entity_id: sensor.payson_s25_ble_room
+      from: "bedroom"
+  condition: []
+  action:
+    - service: rest_command.productivity_guard_force_unblock
+      data:
+        device_ip: "192.168.22.75"
+  mode: single
+
+# ── Optional: Revoke all approvals at sleep time ────────────────────────────
+# Uncomment if you want a hard cutoff at a certain time
+
+# - id: "pg_sleep_revoke"
+#   alias: "Productivity Guard: Sleep time — revoke all"
+#   description: "Revoke all active approvals at 11 PM"
+#   trigger:
+#     - platform: time
+#       at: "23:00:00"
+#   action:
+#     - service: rest_command.productivity_guard_revoke_all
+#   mode: single

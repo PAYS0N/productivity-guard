@@ -1,0 +1,69 @@
+api:
+  host: "0.0.0.0"
+  port: 8800
+
+anthropic:
+  api_key: "YOUR_ANTHROPIC_API_KEY_HERE"
+  model: "claude-sonnet-4-20250514"
+  max_tokens: 500
+  temperature: 0.2
+
+homeassistant:
+  url: "http://192.168.22.1:8123"
+  token: "YOUR_HA_LONG_LIVED_ACCESS_TOKEN_HERE"
+
+dnsmasq:
+  blocked_hosts_path: "/etc/dnsmasq.d/blocked_hosts"
+
+domains:
+  conditional:
+    - reddit.com
+    - www.reddit.com
+    - youtube.com
+    - www.youtube.com
+    - inv.nadeko.net
+    - yewtu.be
+    - invidious.nerdvpn.de
+  always_blocked: []
+
+schedule:
+  relax_windows:
+    weekday:
+      start: "20:00"
+      end: "23:00"
+    weekend:
+      start: "15:00"
+      end: "23:00"
+  relax_rooms:
+    - living_room
+
+# Map device IPs to names and Bermuda entities
+# Bermuda entity names depend on your HA config — check HA for exact entity IDs
+devices:
+  "192.168.22.50":
+    name: "voidgloom"
+    type: "laptop"
+    # bermuda_entity: "sensor.voidgloom_ble_room"  # uncomment if BLE tracked
+  "192.168.22.51":
+    name: "plantera"
+    type: "laptop"
+  "192.168.22.52":
+    name: "akura_malice"
+    type: "laptop"
+  "192.168.22.53":
+    name: "coral"
+    type: "laptop"
+  "192.168.22.75":
+    name: "payson_s25"
+    type: "phone"
+    bermuda_entity: "sensor.payson_s25_ble_room"
+  "192.168.22.76":
+    name: "iphone_14"
+    type: "phone"
+    bermuda_entity: "sensor.iphone_14_ble_room"
+  "192.168.22.77":
+    name: "notebook"
+    type: "tablet"
+
+database:
+  path: "/home/pays0n/productivity-guard/requests.db"

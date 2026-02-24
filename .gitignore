@@ -1,0 +1,20 @@
+# Secrets
+backend/config.yaml
+
+# Database
+*.db
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/

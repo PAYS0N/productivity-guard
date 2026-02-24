@@ -1,0 +1,43 @@
+{
+  "manifest_version": 2,
+  "name": "Productivity Guard",
+  "version": "1.0.0",
+  "description": "LLM-gated web access control. Intercepts navigation to blocked domains and negotiates access with the Productivity Guard backend.",
+
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "storage",
+    "tabs",
+    "<all_urls>"
+  ],
+
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "Productivity Guard"
+  },
+
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+
+  "web_accessible_resources": [
+    "blocked.html"
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "productivity-guard@local",
+      "strict_min_version": "91.0"
+    },
+    "gecko_android": {
+      "strict_min_version": "91.0"
+    }
+  }
+}

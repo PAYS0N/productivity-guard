@@ -1,0 +1,25 @@
+[Unit]
+Description=Productivity Guard — LLM-gated web access control
+After=network.target dnsmasq.service docker.service
+Wants=dnsmasq.service
+
+[Service]
+Type=simple
+User=pays0n
+Group=pays0n
+WorkingDirectory=/home/pays0n/productivity-guard/backend
+ExecStart=/home/pays0n/productivity-guard/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8800
+Restart=always
+RestartSec=5
+
+# Environment (secrets can go here or in config.yaml)
+# Environment=ANTHROPIC_API_KEY=sk-ant-...
+# Environment=HA_TOKEN=...
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=productivity-guard
+
+[Install]
+WantedBy=multi-user.target
