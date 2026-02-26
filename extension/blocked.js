@@ -13,6 +13,8 @@ const blockedDomain = params.get("domain") || "";
 document.getElementById("domain-display").textContent = blockedDomain;
 document.getElementById("url-display").textContent = blockedUrl;
 
+document.getElementById("submit-btn").addEventListener("click", submitRequest);
+
 // Allow Enter key to submit (Shift+Enter for newline)
 document.getElementById("reason").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
