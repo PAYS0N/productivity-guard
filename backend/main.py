@@ -22,7 +22,7 @@ from blocklist import BlocklistManager
 from database import Database
 from ha_client import HAClient
 from llm_gatekeeper import LLMGatekeeper
-from backend.models import (
+from models import (
     AccessRequest,
     AccessResponse,
     DomainStatus,
@@ -138,6 +138,64 @@ def domain_to_conditional(domain: str) -> str | None:
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
+
+@app.post("/debug/prompt")
+async def request_access(body: AccessRequest, request: Request):
+    """Main endpoint: evaluate an access request via the LLM gatekeeper."""
+
+    # Determine device IP — prefer body, fall back to request source
+    device_ip = body.device_ip or request.client.host
+    domain = extract_domain(body.url)
+
+    # Check if device is force-blocked
+    if device_ip in force_blocked_devices:
+        return AccessResponse(
+            approved=False,
+            message="Your device is currently force-blocked (location restriction). Access denied.",
+            domain=domain,
+        )
+
+    # Validate domain is in our conditional list
+    conditional_domain = domain_to_conditional(domain)
+    if not conditional_domain:
+        # Check always-blocked
+        always = set(config["domains"].get("always_blocked", []))
+        if domain in always or domain.lstrip("www.") in always:
+            return AccessResponse(
+                approved=False,
+                message="This domain is permanently blocked. No exceptions.",
+                domain=domain,
+            )
+        # Not a managed domain — shouldn't normally reach here
+        return AccessResponse(
+            approved=False,
+            message="This domain is not in the managed blocklist.",
+            domain=domain,
+        )
+
+    # Gather context
+    device_info = ha_client.get_device_info(device_ip)
+    device_name = device_info["name"] if device_info else None
+    device_type = device_info.get("type") if device_info else None
+    room = await ha_client.get_device_room(device_ip)
+    request_count = await db.get_today_count(device_ip)
+    recent = await db.get_recent_requests(limit=5, device_ip=device_ip)
+    
+    user_message = llm._build_user_message(
+        url=body.url,
+        reason=body.reason,
+        device_name=device_name,
+        device_type=device_type,
+        room=room,
+        request_count_today=request_count,
+        recent_requests=recent,
+    )
+
+    return {
+        "system_prompt": llm.system_prompt,
+        "user_message": user_message,
+    }
+
 
 @app.post("/request-access", response_model=AccessResponse)
 async def request_access(body: AccessRequest, request: Request):

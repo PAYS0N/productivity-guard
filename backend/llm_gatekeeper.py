@@ -8,7 +8,7 @@ from pathlib import Path
 
 import anthropic
 
-from backend.models import LLMDecision
+from models import LLMDecision
 
 logger = logging.getLogger(__name__)
 
