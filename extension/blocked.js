@@ -45,11 +45,10 @@ async function submitRequest() {
     });
 
     if (response.approved) {
-      showResponse(
-        "approved",
-        response.message +
-          `<div class="scope-info">Scope: ${response.scope || "/*"} · Duration: ${response.duration_minutes || "?"} minutes<br>Redirecting in 3 seconds...</div>`
-      );
+      showResponse("approved", response.message, [
+        `Scope: ${response.scope || "/*"} · Duration: ${response.duration_minutes || "?"} minutes`,
+        "Redirecting in 3 seconds...",
+      ]);
       // The background script handles the redirect after DNS propagation
     } else {
       showResponse("denied", response.message);
@@ -63,14 +62,20 @@ async function submitRequest() {
   }
 }
 
-function showResponse(type, message) {
+function showResponse(type, message, scopeLines = []) {
   const el = document.getElementById("response");
   el.className = `response ${type}`;
-  el.innerHTML = message;
+  el.textContent = message;
+  if (scopeLines.length > 0) {
+    const infoDiv = document.createElement("div");
+    infoDiv.className = "scope-info";
+    infoDiv.textContent = scopeLines.join("\n");
+    el.appendChild(infoDiv);
+  }
 }
 
 function hideResponse() {
   const el = document.getElementById("response");
   el.className = "response";
-  el.innerHTML = "";
+  el.textContent = "";
 }

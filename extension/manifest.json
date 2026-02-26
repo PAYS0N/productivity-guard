@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Productivity Guard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "LLM-gated web access control. Intercepts navigation to blocked domains and negotiates access with the Productivity Guard backend.",
 
   "permissions": [
@@ -37,7 +37,7 @@
       "strict_min_version": "91.0"
     },
     "gecko_android": {
-      "strict_min_version": "91.0"
+      "strict_min_version": "113.0"
     }
   }
 }

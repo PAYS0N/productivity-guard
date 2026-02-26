@@ -37,12 +37,14 @@ async function loadStatus() {
         const minutes = Math.ceil(scope.remainingSeconds / 60);
         const card = document.createElement("div");
         card.className = "scope-card";
-        card.innerHTML = `
-          <div class="domain">${scope.domain}</div>
-          <div class="details">
-            Scope: ${scope.pathPrefix} · ${minutes} min remaining
-          </div>
-        `;
+        const domainDiv = document.createElement("div");
+        domainDiv.className = "domain";
+        domainDiv.textContent = scope.domain;
+        const detailsDiv = document.createElement("div");
+        detailsDiv.className = "details";
+        detailsDiv.textContent = `Scope: ${scope.pathPrefix} · ${minutes} min remaining`;
+        card.appendChild(domainDiv);
+        card.appendChild(detailsDiv);
         scopesEl.appendChild(card);
       }
     } else {
