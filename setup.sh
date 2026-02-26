@@ -6,11 +6,12 @@
 # 1. Create a Python virtual environment and install dependencies
 # 2. Add the addn-hosts directive to dnsmasq config
 # 3. Add local-ttl=5 to dnsmasq config (short TTL for blocked responses)
-# 4. Create the initial blocked_hosts file
-# 5. Add iptables rule for port 8800
-# 6. Create sudoers entry for blocklist management
-# 7. Install and enable the systemd service
-# 8. Create config.yaml from the example if it doesn't exist
+# 4. Set up DoH blocking
+# 5. Create the initial blocked_hosts file
+# 6. Add iptables rule for port 8800
+# 7. Create sudoers entry for blocklist management
+# 8. Install and enable the systemd service
+# 9. Create config.yaml from the example if it doesn't exist
 #
 # Prerequisites:
 # - Python 3.11+ installed
@@ -63,9 +64,14 @@ else
     echo "  ✓ local-ttl already configured"
 fi
 
-# ── 4. Initial blocked_hosts ───────────────────────────────────────────────
+# ── 4. DoH blocking ────────────────────────────────────────────────────────
 
-echo "[4/8] Creating initial blocked_hosts file..."
+echo "[4/9] Setting up DoH blocking..."
+bash "$SCRIPT_DIR/setup_doh_block.sh"
+
+# ── 5. Initial blocked_hosts ───────────────────────────────────────────────
+
+echo "[5/9] Creating initial blocked_hosts file..."
 sudo mkdir -p "$(dirname "$BLOCKED_HOSTS")"
 if [ ! -f "$BLOCKED_HOSTS" ]; then
     cat <<'EOF' | sudo tee "$BLOCKED_HOSTS" > /dev/null
@@ -83,9 +89,9 @@ else
     echo "  ✓ $BLOCKED_HOSTS already exists"
 fi
 
-# ── 5. iptables rule ───────────────────────────────────────────────────────
+# ── 6. iptables rule ───────────────────────────────────────────────────────
 
-echo "[5/8] Adding iptables rule for port 8800..."
+echo "[6/9] Adding iptables rule for port 8800..."
 if ! sudo iptables -C INPUT -s 192.168.22.0/24 -i wlan0 -p tcp -m tcp --dport 8800 -j ACCEPT 2>/dev/null; then
     # Insert after the existing port 8123 rule
     RULE_NUM=$(sudo iptables -L INPUT --line-numbers -n | grep "dpt:8123" | awk '{print $1}')
@@ -101,9 +107,9 @@ else
     echo "  ✓ iptables rule already exists"
 fi
 
-# ── 6. sudoers entry ───────────────────────────────────────────────────────
+# ── 7. sudoers entry ───────────────────────────────────────────────────────
 
-echo "[6/8] Creating sudoers entry for blocklist management..."
+echo "[7/9] Creating sudoers entry for blocklist management..."
 SUDOERS_FILE="/etc/sudoers.d/productivity-guard"
 if [ ! -f "$SUDOERS_FILE" ]; then
     cat <<EOF | sudo tee "$SUDOERS_FILE" > /dev/null
@@ -117,17 +123,17 @@ else
     echo "  ✓ sudoers entry already exists"
 fi
 
-# ── 7. systemd service ─────────────────────────────────────────────────────
+# ── 8. systemd service ─────────────────────────────────────────────────────
 
-echo "[7/8] Installing systemd service..."
+echo "[8/9] Installing systemd service..."
 sudo cp "$BACKEND_DIR/productivity-guard.service" "$SERVICE_FILE"
 sudo systemctl daemon-reload
 sudo systemctl enable productivity-guard
 echo "  ✓ Service installed and enabled"
 
-# ── 8. Config file ─────────────────────────────────────────────────────────
+# ── 9. Config file ─────────────────────────────────────────────────────────
 
-echo "[8/8] Checking config..."
+echo "[9/9] Checking config..."
 if [ ! -f "$BACKEND_DIR/config.yaml" ]; then
     cp "$BACKEND_DIR/config.example.yaml" "$BACKEND_DIR/config.yaml"
     echo "  ⚠ Created config.yaml from example. YOU MUST EDIT IT:"
