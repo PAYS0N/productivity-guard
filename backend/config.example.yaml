@@ -13,7 +13,7 @@ homeassistant:
   token: "YOUR_HA_LONG_LIVED_ACCESS_TOKEN_HERE"
 
 dnsmasq:
-  blocked_hosts_path: "/etc/dnsmasq.d/blocked_hosts"
+  blocked_hosts_path: "/etc/productivity-guard/blocked_hosts"
 
 domains:
   conditional:

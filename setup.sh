@@ -23,7 +23,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 VENV_DIR="$SCRIPT_DIR/venv"
 DNSMASQ_CONF="/etc/dnsmasq.d/router.conf"
-BLOCKED_HOSTS="/etc/dnsmasq.d/blocked_hosts"
+BLOCKED_HOSTS="/etc/productivity-guard/blocked_hosts"
 SERVICE_FILE="/etc/systemd/system/productivity-guard.service"
 
 echo "=== Productivity Guard Setup ==="
@@ -66,6 +66,7 @@ fi
 # ── 4. Initial blocked_hosts ───────────────────────────────────────────────
 
 echo "[4/8] Creating initial blocked_hosts file..."
+sudo mkdir -p "$(dirname "$BLOCKED_HOSTS")"
 if [ ! -f "$BLOCKED_HOSTS" ]; then
     cat <<'EOF' | sudo tee "$BLOCKED_HOSTS" > /dev/null
 # Managed by Productivity Guard — do not edit manually
@@ -107,7 +108,7 @@ SUDOERS_FILE="/etc/sudoers.d/productivity-guard"
 if [ ! -f "$SUDOERS_FILE" ]; then
     cat <<EOF | sudo tee "$SUDOERS_FILE" > /dev/null
 # Productivity Guard — allow backend to manage DNS blocklist
-pays0n ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/dnsmasq.d/blocked_hosts
+pays0n ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/productivity-guard/blocked_hosts
 pays0n ALL=(ALL) NOPASSWD: /usr/bin/pkill -HUP dnsmasq
 EOF
     sudo chmod 0440 "$SUDOERS_FILE"

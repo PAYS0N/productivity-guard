@@ -1,7 +1,7 @@
 """Manages the dnsmasq blocked_hosts file for DNS-level domain blocking.
 
 This module handles:
-- Writing/removing domains from /etc/dnsmasq.d/blocked_hosts
+- Writing/removing domains from /etc/productivity-guard/blocked_hosts
 - Sending SIGHUP to dnsmasq to reload the hosts file (no restart needed)
 - Scheduling re-blocking after temporary unblock durations expire
 - Tracking which domains are temporarily unblocked for which devices
