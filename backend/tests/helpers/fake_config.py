@@ -28,13 +28,6 @@ FAKE_CONFIG = {
         # twitter.com is always-blocked — used to test the lstrip bug
         "always_blocked": ["twitter.com"],
     },
-    "schedule": {
-        "relax_windows": {
-            "weekday": {"start": "20:00", "end": "23:00"},
-            "weekend": {"start": "15:00", "end": "23:00"},
-        },
-        "relax_rooms": ["living_room"],
-    },
     "devices": {
         "192.168.1.100": {
             "name": "test-laptop",

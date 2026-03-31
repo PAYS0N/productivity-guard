@@ -71,7 +71,6 @@ llm = LLMGatekeeper(
     max_tokens=config["anthropic"].get("max_tokens", 500),
     temperature=config["anthropic"].get("temperature", 0.2),
     system_prompt_path=str(Path(__file__).parent / "system_prompt.txt"),
-    relax_schedule=config.get("schedule", {}),
 )
 
 # Track force-blocked devices (from HA automations, e.g., phone in bedroom)

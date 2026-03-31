@@ -26,17 +26,6 @@ domains:
     - invidious.nerdvpn.de
   always_blocked: []
 
-schedule:
-  relax_windows:
-    weekday:
-      start: "20:00"
-      end: "23:00"
-    weekend:
-      start: "15:00"
-      end: "23:00"
-  relax_rooms:
-    - living_room
-
 # Map device IPs to names and Bermuda entities
 # Bermuda entity names depend on your HA config — check HA for exact entity IDs
 devices:

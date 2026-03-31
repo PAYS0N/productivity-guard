@@ -11,8 +11,6 @@ Known issue this file documents:
 import pytest
 import httpx
 from unittest.mock import MagicMock, patch
-from freezegun import freeze_time
-
 import anthropic
 
 from llm_gatekeeper import LLMGatekeeper
@@ -32,20 +30,13 @@ def system_prompt_file(tmp_path):
 
 @pytest.fixture
 def gatekeeper(system_prompt_file):
-    """LLMGatekeeper with a weekday 20:00–23:00 and weekend 15:00–23:00 schedule."""
+    """LLMGatekeeper with test configuration."""
     return LLMGatekeeper(
         api_key="test-fake-key",
         model="claude-test",
         max_tokens=100,
         temperature=0.0,
         system_prompt_path=system_prompt_file,
-        relax_schedule={
-            "relax_windows": {
-                "weekday": {"start": "20:00", "end": "23:00"},
-                "weekend": {"start": "15:00", "end": "23:00"},
-            },
-            "relax_rooms": ["living_room"],
-        },
     )
 
 
@@ -140,60 +131,6 @@ class TestParseResponse:
         assert isinstance(result, LLMDecision)
 
 
-# ── _is_relax_window ──────────────────────────────────────────────────────────
-
-
-class TestIsRelaxWindow:
-    @freeze_time("2024-02-06 21:00:00")  # Tuesday 9 PM — inside window
-    def test_inside_weekday_window(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is True
-
-    @freeze_time("2024-02-06 19:59:00")  # Tuesday 7:59 PM — before window starts
-    def test_outside_weekday_window_before(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is False
-
-    @freeze_time("2024-02-06 23:01:00")  # Tuesday 11:01 PM — after window ends
-    def test_outside_weekday_window_after(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is False
-
-    @freeze_time("2024-02-10 16:00:00")  # Saturday 4 PM — inside weekend window
-    def test_inside_weekend_window(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is True
-
-    @freeze_time("2024-02-10 14:59:00")  # Saturday 2:59 PM — before weekend starts
-    def test_outside_weekend_window_before(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is False
-
-    @freeze_time("2024-02-06 20:00:00")  # Exactly at weekday start — inclusive
-    def test_boundary_start_inclusive(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is True
-
-    @freeze_time("2024-02-06 23:00:00")  # Exactly at weekday end — inclusive
-    def test_boundary_end_inclusive(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is True
-
-    def test_no_schedule_returns_false(self, system_prompt_file):
-        gk = LLMGatekeeper(
-            api_key="fake",
-            system_prompt_path=system_prompt_file,
-            relax_schedule={},
-        )
-        assert gk._is_relax_window() is False
-
-    def test_missing_window_key_returns_false(self, system_prompt_file):
-        """relax_schedule exists but has no relax_windows key."""
-        gk = LLMGatekeeper(
-            api_key="fake",
-            system_prompt_path=system_prompt_file,
-            relax_schedule={"relax_rooms": ["living_room"]},
-        )
-        assert gk._is_relax_window() is False
-
-    @freeze_time("2024-02-11 21:00:00")  # Sunday — is_weekend check
-    def test_sunday_uses_weekend_schedule(self, gatekeeper):
-        assert gatekeeper._is_relax_window() is True  # Sunday 9 PM in 15:00–23:00
-
-
 # ── _build_user_message ───────────────────────────────────────────────────────
 
 
@@ -260,25 +197,6 @@ class TestBuildUserMessage:
         msg = self._build(gatekeeper, recent_requests=[])
         assert "Recent Request History" not in msg
 
-    @freeze_time("2024-02-06 21:30:00")  # Inside weekday relax window
-    def test_relax_window_active_shown_when_in_window(self, gatekeeper):
-        msg = self._build(gatekeeper, room="living_room")
-        assert "YES" in msg  # "Relax window active: YES"
-
-    @freeze_time("2024-02-06 19:00:00")  # Outside relax window
-    def test_relax_window_inactive_shown_outside_window(self, gatekeeper):
-        msg = self._build(gatekeeper)
-        assert "NO" in msg  # "Relax window active: NO"
-
-    @freeze_time("2024-02-06 21:30:00")  # Inside relax window
-    def test_relax_room_eligibility_shown_in_window(self, gatekeeper):
-        msg = self._build(gatekeeper, room="living_room")
-        assert "In relax-eligible room" in msg
-
-    @freeze_time("2024-02-06 19:00:00")  # Outside relax window
-    def test_relax_room_info_absent_outside_window(self, gatekeeper):
-        msg = self._build(gatekeeper, room="living_room")
-        assert "In relax-eligible room" not in msg
 
 
 # ── evaluate_request (async, LLM stubbed) ────────────────────────────────────
@@ -455,98 +373,6 @@ class TestEvaluateRequest:
         assert "youtube.com" in user_content
         assert "background music" in user_content
         assert "[APPROVED]" in user_content
-
-    @freeze_time("2024-02-06 21:00:00")  # Tuesday 9 PM — inside weekday window
-    async def test_user_message_shows_relax_active_when_in_window(self, gatekeeper):
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(url="https://reddit.com", reason="test")
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        assert "Relax window active" in user_content
-        assert "YES" in user_content
-
-    @freeze_time("2024-02-06 19:00:00")  # Tuesday 7 PM — outside window
-    async def test_user_message_shows_relax_inactive_outside_window(self, gatekeeper):
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(url="https://reddit.com", reason="test")
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        assert "Relax window active" in user_content
-        assert "NO" in user_content
-
-    @freeze_time("2024-02-06 21:00:00")  # Inside window
-    async def test_user_message_shows_room_eligibility_when_in_window(self, gatekeeper):
-        """When in relax window, the LLM sees whether the device is in an eligible room."""
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(
-            url="https://reddit.com", reason="test", room="living_room"
-        )
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        assert "In relax-eligible room" in user_content
-        assert "living_room" in user_content
-
-    @freeze_time("2024-02-06 21:00:00")  # Inside window
-    async def test_user_message_shows_not_in_eligible_room(self, gatekeeper):
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(
-            url="https://reddit.com", reason="test", room="bedroom"
-        )
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        assert "In relax-eligible room" in user_content
-        # bedroom is not in relax_rooms so it should show NO
-        assert "NO" in user_content
-
-    @freeze_time("2024-02-06 19:00:00")  # Outside window
-    async def test_user_message_omits_room_eligibility_outside_window(self, gatekeeper):
-        """Room eligibility is only shown when in a relax window — not otherwise."""
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(
-            url="https://reddit.com", reason="test", room="living_room"
-        )
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        # Room eligibility section not shown outside relax window
-        assert "In relax-eligible room" not in user_content
-
-    async def test_next_relax_window_not_in_prompt(self, gatekeeper):
-        """The LLM is NOT told when the next relax window starts.
-
-        The prompt only includes whether a relax window is currently active (YES/NO).
-        The schedule start/end times are not forwarded to the LLM.
-        """
-        mock_create = MagicMock(
-            return_value=_mock_llm_response(
-                '{"approved": false, "scope": "/*", "duration_minutes": 0, "message": "no"}'
-            )
-        )
-        gatekeeper.client.messages.create = mock_create
-        await gatekeeper.evaluate_request(url="https://reddit.com", reason="test")
-        user_content = mock_create.call_args.kwargs["messages"][0]["content"]
-        # Schedule window times are not passed to the LLM
-        assert "20:00" not in user_content
-        assert "23:00" not in user_content
 
     async def test_user_message_contains_device_type(self, gatekeeper):
         mock_create = MagicMock(
