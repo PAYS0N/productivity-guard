@@ -24,6 +24,8 @@ def set_config_env(tmp_path_factory):
     config_file = config_dir / "config.yaml"
     config_file.write_text(yaml.dump(FAKE_CONFIG))
     os.environ["PG_CONFIG"] = str(config_file)
+    os.environ.setdefault("ANTHROPIC_API_KEY", "test-fake-key-not-real")
+    os.environ.setdefault("HA_TOKEN", "fake-ha-token")
     yield
     # Clean up
     os.environ.pop("PG_CONFIG", None)

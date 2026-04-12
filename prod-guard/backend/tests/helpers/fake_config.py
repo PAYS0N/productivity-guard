@@ -10,14 +10,12 @@ FAKE_CONFIG = {
         "port": 8800,
     },
     "anthropic": {
-        "api_key": "test-fake-key-not-real",
         "model": "claude-test-model",
         "max_tokens": 100,
         "temperature": 0.0,
     },
     "homeassistant": {
         "url": "http://ha.test:8123",
-        "token": "fake-ha-token",
     },
     "dnsmasq": {
         "blocked_hosts_path": "/tmp/test_blocked_hosts",

@@ -45,9 +45,14 @@ CONFIG_PATH = os.environ.get("PG_CONFIG", str(Path(__file__).parent / "config.ya
 with open(CONFIG_PATH) as f:
     config = yaml.safe_load(f)
 
-# Allow env var override for secrets
-anthropic_key = os.environ.get("ANTHROPIC_API_KEY", config["anthropic"]["api_key"])
-ha_token = os.environ.get("HA_TOKEN", config["homeassistant"]["token"])
+# Secrets are required via environment variables — set in .env for Docker
+anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+ha_token = os.environ.get("HA_TOKEN")
+
+if not anthropic_key:
+    raise RuntimeError("ANTHROPIC_API_KEY environment variable is required")
+if not ha_token:
+    raise RuntimeError("HA_TOKEN environment variable is required")
 
 # ── Initialize components ────────────────────────────────────────────────────
 

@@ -3,14 +3,12 @@ api:
   port: 8800
 
 anthropic:
-  api_key: "YOUR_ANTHROPIC_API_KEY_HERE"
   model: "claude-sonnet-4-20250514"
   max_tokens: 500
   temperature: 0.2
 
 homeassistant:
   url: "http://192.168.22.1:8123"
-  token: "YOUR_HA_LONG_LIVED_ACCESS_TOKEN_HERE"
 
 dnsmasq:
   blocked_hosts_path: "/etc/productivity-guard/blocked_hosts"
