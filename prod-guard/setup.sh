@@ -3,18 +3,18 @@
 #
 # Run this on the Pi as your normal user (pays0n).
 # It will:
-# 1. Create a Python virtual environment and install dependencies
-# 2. Add the addn-hosts directive to dnsmasq config
-# 3. Add local-ttl=5 to dnsmasq config (short TTL for blocked responses)
-# 4. Set up DoH blocking
-# 5. Create the initial blocked_hosts file
-# 6. Add iptables rule for port 8800
-# 7. Create sudoers entry for blocklist management
-# 8. Install and enable the systemd service
-# 9. Create config.yaml from the example if it doesn't exist
+# 1. Swap dnsmasq addn-hosts → hostsdir directive
+# 2. Add local-ttl=5 to dnsmasq config (short TTL for blocked responses)
+# 3. Set up DoH blocking
+# 4. Create the initial blocked_hosts file
+# 5. Add iptables rule for port 8800
+# 6. Install Docker and Docker Compose if absent
+# 7. Create .env from .env.example if absent
+# 8. Migrate existing SQLite database into the Docker volume if present
+# 9. Create config.yaml from the example if absent
+# 10. Start the backend container
 #
 # Prerequisites:
-# - Python 3.11+ installed
 # - dnsmasq running
 # - iptables-persistent installed
 
@@ -22,41 +22,36 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
-VENV_DIR="$SCRIPT_DIR/venv"
 DNSMASQ_CONF="/etc/dnsmasq.d/router.conf"
-BLOCKED_HOSTS="/etc/productivity-guard/blocked_hosts"
-SERVICE_FILE="/etc/systemd/system/productivity-guard.service"
+BLOCKED_HOSTS_DIR="/etc/productivity-guard"
+BLOCKED_HOSTS="$BLOCKED_HOSTS_DIR/blocked_hosts"
+LEGACY_DB="/home/pays0n/productivity-guard/requests.db"
 
 echo "=== Productivity Guard Setup ==="
 echo ""
 
-# ── 1. Python venv ──────────────────────────────────────────────────────────
+# ── 1. dnsmasq hostsdir ────────────────────────────────────────────────────
 
-echo "[1/8] Setting up Python virtual environment..."
-if [ ! -d "$VENV_DIR" ]; then
-    python3 -m venv "$VENV_DIR"
+echo "[1/10] Configuring dnsmasq hostsdir..."
+
+# Remove legacy addn-hosts line if present
+if grep -q "addn-hosts=$BLOCKED_HOSTS" "$DNSMASQ_CONF" 2>/dev/null; then
+    sudo sed -i "\|addn-hosts=$BLOCKED_HOSTS|d" "$DNSMASQ_CONF"
+    echo "  ✓ Removed legacy addn-hosts directive"
 fi
-source "$VENV_DIR/bin/activate"
-pip install --upgrade pip
-pip install -r "$BACKEND_DIR/requirements.txt"
-deactivate
-echo "  ✓ Virtual environment ready at $VENV_DIR"
 
-# ── 2. dnsmasq addn-hosts ──────────────────────────────────────────────────
-
-echo "[2/8] Configuring dnsmasq addn-hosts..."
-if ! grep -q "addn-hosts=$BLOCKED_HOSTS" "$DNSMASQ_CONF" 2>/dev/null; then
+if ! grep -q "hostsdir=$BLOCKED_HOSTS_DIR" "$DNSMASQ_CONF" 2>/dev/null; then
     echo "" | sudo tee -a "$DNSMASQ_CONF" > /dev/null
     echo "# Productivity Guard blocked domains" | sudo tee -a "$DNSMASQ_CONF" > /dev/null
-    echo "addn-hosts=$BLOCKED_HOSTS" | sudo tee -a "$DNSMASQ_CONF" > /dev/null
-    echo "  ✓ Added addn-hosts directive to $DNSMASQ_CONF"
+    echo "hostsdir=$BLOCKED_HOSTS_DIR" | sudo tee -a "$DNSMASQ_CONF" > /dev/null
+    echo "  ✓ Added hostsdir directive to $DNSMASQ_CONF"
 else
-    echo "  ✓ addn-hosts already configured"
+    echo "  ✓ hostsdir already configured"
 fi
 
-# ── 3. dnsmasq local-ttl ───────────────────────────────────────────────────
+# ── 2. dnsmasq local-ttl ───────────────────────────────────────────────────
 
-echo "[3/8] Setting short DNS TTL for blocked responses..."
+echo "[2/10] Setting short DNS TTL for blocked responses..."
 if ! grep -q "local-ttl=5" "$DNSMASQ_CONF" 2>/dev/null; then
     echo "local-ttl=5" | sudo tee -a "$DNSMASQ_CONF" > /dev/null
     echo "  ✓ Added local-ttl=5 to $DNSMASQ_CONF"
@@ -64,15 +59,15 @@ else
     echo "  ✓ local-ttl already configured"
 fi
 
-# ── 4. DoH blocking ────────────────────────────────────────────────────────
+# ── 3. DoH blocking ────────────────────────────────────────────────────────
 
-echo "[4/9] Setting up DoH blocking..."
+echo "[3/10] Setting up DoH blocking..."
 bash "$SCRIPT_DIR/setup_doh_block.sh"
 
-# ── 5. Initial blocked_hosts ───────────────────────────────────────────────
+# ── 4. Initial blocked_hosts ───────────────────────────────────────────────
 
-echo "[5/9] Creating initial blocked_hosts file..."
-sudo mkdir -p "$(dirname "$BLOCKED_HOSTS")"
+echo "[4/10] Creating initial blocked_hosts file..."
+sudo mkdir -p "$BLOCKED_HOSTS_DIR"
 if [ ! -f "$BLOCKED_HOSTS" ]; then
     cat <<'EOF' | sudo tee "$BLOCKED_HOSTS" > /dev/null
 # Managed by Productivity Guard — do not edit manually
@@ -89,11 +84,10 @@ else
     echo "  ✓ $BLOCKED_HOSTS already exists"
 fi
 
-# ── 6. iptables rule ───────────────────────────────────────────────────────
+# ── 5. iptables rule ───────────────────────────────────────────────────────
 
-echo "[6/9] Adding iptables rule for port 8800..."
+echo "[5/10] Adding iptables rule for port 8800..."
 if ! sudo iptables -C INPUT -s 192.168.22.0/24 -i wlan0 -p tcp -m tcp --dport 8800 -j ACCEPT 2>/dev/null; then
-    # Insert after the existing port 8123 rule
     RULE_NUM=$(sudo iptables -L INPUT --line-numbers -n | grep "dpt:8123" | awk '{print $1}')
     if [ -n "$RULE_NUM" ]; then
         INSERT_AT=$((RULE_NUM + 1))
@@ -107,38 +101,66 @@ else
     echo "  ✓ iptables rule already exists"
 fi
 
-# ── 7. sudoers entry ───────────────────────────────────────────────────────
+# ── 6. Docker ──────────────────────────────────────────────────────────────
 
-echo "[7/9] Creating sudoers entry for blocklist management..."
-SUDOERS_FILE="/etc/sudoers.d/productivity-guard"
-if [ ! -f "$SUDOERS_FILE" ]; then
-    cat <<EOF | sudo tee "$SUDOERS_FILE" > /dev/null
-# Productivity Guard — allow backend to manage DNS blocklist
-pays0n ALL=(ALL) NOPASSWD: /usr/bin/tee /etc/productivity-guard/blocked_hosts
-pays0n ALL=(ALL) NOPASSWD: /usr/bin/pkill -HUP dnsmasq
-EOF
-    sudo chmod 0440 "$SUDOERS_FILE"
-    echo "  ✓ Created $SUDOERS_FILE"
+echo "[6/10] Checking Docker installation..."
+if ! command -v docker &>/dev/null; then
+    echo "  Installing Docker..."
+    curl -fsSL https://get.docker.com | sudo sh
+    sudo usermod -aG docker "$USER"
+    echo "  ✓ Docker installed. You may need to log out and back in for group membership to take effect."
 else
-    echo "  ✓ sudoers entry already exists"
+    echo "  ✓ Docker already installed"
 fi
 
-# ── 8. systemd service ─────────────────────────────────────────────────────
+if ! docker compose version &>/dev/null; then
+    echo "  Installing Docker Compose plugin..."
+    sudo apt-get install -y docker-compose-plugin
+    echo "  ✓ Docker Compose installed"
+else
+    echo "  ✓ Docker Compose already installed"
+fi
 
-echo "[8/9] Installing systemd service..."
-sudo cp "$BACKEND_DIR/productivity-guard.service" "$SERVICE_FILE"
-sudo systemctl daemon-reload
-sudo systemctl enable productivity-guard
-echo "  ✓ Service installed and enabled"
+# ── 7. .env file ───────────────────────────────────────────────────────────
+
+echo "[7/10] Checking .env file..."
+if [ ! -f "$SCRIPT_DIR/.env" ]; then
+    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
+    echo "  ⚠ Created .env from .env.example. YOU MUST EDIT IT:"
+    echo "    - Set ANTHROPIC_API_KEY"
+    echo "    - Set HA_TOKEN"
+    echo "    Edit: $SCRIPT_DIR/.env"
+else
+    echo "  ✓ .env exists"
+fi
+
+# ── 8. Migrate existing SQLite database ────────────────────────────────────
+
+echo "[8/10] Checking for existing database to migrate..."
+VOLUME_NAME="prod-guard_pg-data"
+VOLUME_PATH="/var/lib/docker/volumes/${VOLUME_NAME}/_data"
+
+if [ -f "$LEGACY_DB" ]; then
+    # Ensure volume exists by creating it if needed
+    docker volume inspect "$VOLUME_NAME" &>/dev/null || docker volume create "$VOLUME_NAME" > /dev/null
+    sudo mkdir -p "$VOLUME_PATH"
+
+    if [ ! -f "$VOLUME_PATH/requests.db" ]; then
+        sudo cp "$LEGACY_DB" "$VOLUME_PATH/requests.db"
+        echo "  ✓ Migrated $LEGACY_DB → Docker volume ($VOLUME_PATH/requests.db)"
+    else
+        echo "  ✓ Volume already contains requests.db — skipping migration"
+    fi
+else
+    echo "  ✓ No legacy database found at $LEGACY_DB — starting fresh"
+fi
 
 # ── 9. Config file ─────────────────────────────────────────────────────────
 
-echo "[9/9] Checking config..."
+echo "[9/10] Checking config..."
 if [ ! -f "$BACKEND_DIR/config.yaml" ]; then
     cp "$BACKEND_DIR/config.example.yaml" "$BACKEND_DIR/config.yaml"
     echo "  ⚠ Created config.yaml from example. YOU MUST EDIT IT:"
-    echo "    - Set your Anthropic API key"
-    echo "    - Set your Home Assistant long-lived access token"
     echo "    - Verify Bermuda entity names"
     echo "    Edit: $BACKEND_DIR/config.yaml"
 else
@@ -152,16 +174,23 @@ echo "Restarting dnsmasq..."
 sudo systemctl restart dnsmasq
 echo "  ✓ dnsmasq restarted"
 
+# ── 10. Start container ────────────────────────────────────────────────────
+
+echo "[10/10] Starting backend container..."
+cd "$SCRIPT_DIR"
+docker compose up -d --build
+echo "  ✓ Backend container started"
+
 echo ""
 echo "=== Setup Complete ==="
 echo ""
 echo "Next steps:"
-echo "  1. Edit $BACKEND_DIR/config.yaml with your API keys"
-echo "  2. Verify Bermuda entity names in config.yaml match your HA setup"
-echo "  3. Start the service:"
-echo "     sudo systemctl start productivity-guard"
-echo "  4. Check logs:"
-echo "     sudo journalctl -u productivity-guard -f"
+echo "  1. Edit $SCRIPT_DIR/.env with your API keys (if not already done)"
+echo "  2. Edit $BACKEND_DIR/config.yaml to verify Bermuda entity names"
+echo "  3. Check logs:"
+echo "     cd $SCRIPT_DIR && docker compose logs -f"
+echo "  4. Restart the container after config changes:"
+echo "     cd $SCRIPT_DIR && docker compose restart"
 echo "  5. Install the Firefox extension:"
 echo "     Open about:debugging → Load Temporary Add-on → select extension/manifest.json"
 echo "  6. Add HA automations from homeassistant/automations.yaml"

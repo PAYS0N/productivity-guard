@@ -101,7 +101,7 @@ def assemble_prompt(task_description, prompting_text, cdocs_output, status_text)
 # ── Status resolution ────────────────────────────────────────────────────────
 
 CLI_PATH_RE = re.compile(r"(/\S+/project_tasks_cli\.py)")
-PROJECT_NAME_RE = re.compile(r"project_tasks_cli\.py\s+(list|add|complete|update|delete)\s+(\w+)")
+PROJECT_NAME_RE = re.compile(r"project_tasks_cli\.py\s+(list|add|complete|update|delete)\s+(\S+)(?=`)")
 
 
 def detect_status_cli(status_text):
@@ -116,7 +116,7 @@ def detect_status_cli(status_text):
   project_match = PROJECT_NAME_RE.search(status_text)
   if not project_match:
     return None, None
-  return cli_path, project_match.group(1)
+  return cli_path, project_match.group(2)
 
 
 def resolve_status(repo_root):

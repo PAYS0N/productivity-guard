@@ -55,4 +55,4 @@ devices:
     type: "tablet"
 
 database:
-  path: "/home/pays0n/productivity-guard/requests.db"
+  path: "/data/requests.db"

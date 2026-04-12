@@ -69,7 +69,7 @@ def walk_repo_files(repo_root, excludes):
     if not path.is_file():
       continue
     rel = str(path.relative_to(repo_root))
-    if any(part in {".git", "__pycache__"} for part in path.relative_to(repo_root).parts):
+    if any(part.startswith(".") or part == "__pycache__" for part in path.relative_to(repo_root).parts):
       continue
     if is_excluded(rel, excludes):
       continue

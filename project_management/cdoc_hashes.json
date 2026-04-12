@@ -1,0 +1,72 @@
+{
+  "project_management/cdocs/backend-api.md": {
+    "content_hash": "93b880fe04558a27ee8f5612b6b74c6495ef6ea40f97d395d2867fd3e9242264",
+    "source_file_hashes": {
+      "prod-guard/backend/main.py": "e7cbf972d159e781d45eed317ae35f775786b018f223476c2f7f433ee6bcf650",
+      "prod-guard/backend/models.py": "e1fe884068095fe8f0603f4db2a1531312cf4b9f3b29df4384252aada15b23bd"
+    },
+    "source_hash": "f257083e1608ef6cc4ac17396fad5986ae944f30fbe7679a2fa196006d542240"
+  },
+  "project_management/cdocs/database.md": {
+    "content_hash": "1e11a26f94427b54bd618e5c2d7dcc9ee95be2d9cf45f6fcde01d43589d20617",
+    "source_file_hashes": {
+      "prod-guard/backend/database.py": "6e4852e4df8c717e77318b460b2747b23332efc2787ff02badee593622ce2b40"
+    },
+    "source_hash": "8a08a9e55698fa50dda232211d310d57a427fafd2ef2c3a1612e467cbeaca359"
+  },
+  "project_management/cdocs/deployment.md": {
+    "content_hash": "01fa9b4cfcfd0e14d44fb70b3cb7815c489ecb7fdbeb42811da01c29236b839d",
+    "source_file_hashes": {
+      "prod-guard/backend/productivity-guard.service": "fa158e4ebbc1af322f7c577174b8b6f8db22148c767a1e4dc6e04eb184b88ebf",
+      "prod-guard/setup.sh": "6e997804620a5fa3622e139200699c931fc569fa45fca0cd851b4d0f8711663d",
+      "prod-guard/setup_doh_block.sh": "a19b9b1c33e466d60fe069cbbacc2656237333ab172eded8c6826650373199ef"
+    },
+    "source_hash": "930ccf538eac3bc2601820324d9a9f3e3e47d9ff28fd21f0efc83b0de353f2c3"
+  },
+  "project_management/cdocs/dns-blocklist.md": {
+    "content_hash": "cdf2ef6c2b244fb939e9a9799f6a524454aecffd65a83555b0ee89bb901c0f44",
+    "source_file_hashes": {
+      "prod-guard/backend/blocklist.py": "88c7f20b25b04fe78cab4ed4b27136d2df0c562c68d3494fc46ac1bbdd2fd807"
+    },
+    "source_hash": "5baf9eda93d9228e2870107a15c43097390775f9e423fb2284c28fbfaa98e245"
+  },
+  "project_management/cdocs/extension.md": {
+    "content_hash": "bd77e60f6e0ed94879f4866a38be889a16551ccbf9c1ebece518cd5be8dc15f7",
+    "source_file_hashes": {
+      "prod-guard/extension/background.js": "d11093f43aa8a44d568ce4739ee2865854c643643a5bb2cf99976da9008c4027",
+      "prod-guard/extension/blocked.html": "4c12e712b18616396ff53240eb2b4dd54ed223401bda5d45ff74733543fb5679",
+      "prod-guard/extension/blocked.js": "ba6f4422ec6ab3ad9982721399be72e9fda81ddbf668c3b086a6efd6de6dc7c9",
+      "prod-guard/extension/manifest.json": "52deb704e164dd4e943cf492511423b37a0ca7e7a8bbae64c35287f8156f51b3",
+      "prod-guard/extension/options.html": "389b77e06a40d6203e1203a0e13fbcbeb3e3d6224e8c74aba108b8e60f7f74e1",
+      "prod-guard/extension/options.js": "8997de46d0a7dd1b97d15a5ce2c6d7896a5ab51c512bb2209983ea9705c44902",
+      "prod-guard/extension/popup.html": "aa6a6d4995b47c31cfc82168903c03caa6373ea46764f92374f8d6d0cfec0483",
+      "prod-guard/extension/popup.js": "22b07f658540a48b115ebe6d376713149d39aa248004af726958a8e4aee19fc5"
+    },
+    "source_hash": "4dbd07399926d58d1f8b964713375a4ba197d35a7a21a5c92de1a5fbf8ce3cda"
+  },
+  "project_management/cdocs/ha-integration.md": {
+    "content_hash": "767d79a81beeb30b1e4f56dfab4538dfc0234e6f9a82c06ca1c89f527c36179c",
+    "source_file_hashes": {
+      "prod-guard/backend/ha_client.py": "dd92880c23be0eff2451687cc1d82b7e09a85994627d16502f315d55557ea81d",
+      "prod-guard/homeassistant/automations.yaml": "b46e2307b2df6504fdcdaa95b9835aa5535625f2afec008ae6ab9f107da444c4",
+      "prod-guard/homeassistant/rest_commands.yaml": "416497a9c1aa118482181424b8fc4ffb0370437746f24f105e20ad423824f835"
+    },
+    "source_hash": "0efd6d325241551c1128111a505cee8ef2f24c68b7e3cacd78045cea2db61998"
+  },
+  "project_management/cdocs/llm-gatekeeper.md": {
+    "content_hash": "cd1399add320913ce63158edc01af162dcf717d1e4b9ce9b8c8601a69dd45ba5",
+    "source_file_hashes": {
+      "prod-guard/backend/llm_gatekeeper.py": "30f1aec40349455d04fd27464c430acc9ac3709b93d4617b62a041163c1832c7",
+      "prod-guard/backend/system_prompt.txt": "4dc3503430fe91c28c3013a3f8a3fb4ef174dc6334c03ef97c6e1d63d05d447d"
+    },
+    "source_hash": "092faa48b71da2f27be4a145d269550656fb2dcac751365aa0685327722758e7"
+  },
+  "project_management/cdocs/project-overview.md": {
+    "content_hash": "2bc930fcb5b8f6390dfccf6637e3a0dfc59044a740a7d13f153ea362e86bb5b9",
+    "source_file_hashes": {
+      "prod-guard/ARCHITECTURE.md": "de662bef321b1185ac6b07d3d91d42486ff4c9e70753de130c0ff0f406e9e908",
+      "prod-guard/README.md": "427ca6d4d8d7f90e43e2a2bcc852766ea8c3fba92ac33091822047f61200354e"
+    },
+    "source_hash": "a48f24ebc2b7c7d8e73570c3ea1e715b0f245f930f09e6ce020dee90b3300cf1"
+  }
+}

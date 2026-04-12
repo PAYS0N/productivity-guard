@@ -2,14 +2,16 @@
 
 This module handles:
 - Writing/removing domains from /etc/productivity-guard/blocked_hosts
-- Sending SIGHUP to dnsmasq to reload the hosts file (no restart needed)
 - Scheduling re-blocking after temporary unblock durations expire
 - Tracking which domains are temporarily unblocked for which devices
+
+dnsmasq is configured with `hostsdir` pointing at the directory containing
+the hosts file, so it reloads automatically via inotify when the file changes.
+No SIGHUP or sudo is required.
 """
 
 import asyncio
 import logging
-import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Callable, Awaitable
@@ -57,9 +59,8 @@ class BlocklistManager:
         self.on_reblock_callback = on_reblock_callback
 
     async def initialize(self):
-        """Write the full blocklist and signal dnsmasq. Called on startup."""
+        """Write the full blocklist. Called on startup."""
         await self._write_blocklist()
-        self._signal_dnsmasq()
         logger.info(
             "Blocklist initialized with %d domains", len(self.all_blocked_domains)
         )
@@ -108,7 +109,6 @@ class BlocklistManager:
 
         # Rewrite the blocklist without the unblocked domains
         await self._write_blocklist()
-        self._signal_dnsmasq()
 
         # Schedule re-block
         unblock.timer_task = asyncio.create_task(
@@ -133,7 +133,6 @@ class BlocklistManager:
                     unblock.timer_task.cancel()
 
         await self._write_blocklist()
-        self._signal_dnsmasq()
         logger.info("Re-blocked domains: %s", domains_to_reblock)
 
     async def reblock_all(self):
@@ -143,7 +142,6 @@ class BlocklistManager:
                 unblock.timer_task.cancel()
         self.active_unblocks.clear()
         await self._write_blocklist()
-        self._signal_dnsmasq()
         logger.info("Re-blocked all domains")
 
     def get_active_unblocks(self) -> list[ActiveUnblock]:
@@ -173,7 +171,11 @@ class BlocklistManager:
         return related
 
     async def _write_blocklist(self):
-        """Write the blocked_hosts file with all domains EXCEPT currently unblocked ones."""
+        """Write the blocked_hosts file with all domains EXCEPT currently unblocked ones.
+
+        dnsmasq watches the directory with inotify (hostsdir) and picks up the
+        change automatically — no SIGHUP needed.
+        """
         unblocked = set(self.active_unblocks.keys())
         blocked = self.all_blocked_domains - unblocked
 
@@ -184,37 +186,10 @@ class BlocklistManager:
 
         content = "".join(lines)
 
-        # Write via sudo tee
         try:
-            proc = subprocess.run(
-                ["sudo", "tee", str(self.blocked_hosts_path)],
-                input=content.encode(),
-                capture_output=True,
-                timeout=5,
-            )
-            if proc.returncode != 0:
-                logger.error(
-                    "Failed to write blocklist: %s", proc.stderr.decode()
-                )
-        except subprocess.TimeoutExpired:
-            logger.error("Timeout writing blocklist")
-
-    def _signal_dnsmasq(self):
-        """Send SIGHUP to dnsmasq to reload hosts files."""
-        try:
-            proc = subprocess.run(
-                ["sudo", "pkill", "-HUP", "dnsmasq"],
-                capture_output=True,
-                timeout=5,
-            )
-            if proc.returncode != 0:
-                logger.error(
-                    "Failed to signal dnsmasq: %s", proc.stderr.decode()
-                )
-            else:
-                logger.debug("Sent SIGHUP to dnsmasq")
-        except subprocess.TimeoutExpired:
-            logger.error("Timeout signaling dnsmasq")
+            self.blocked_hosts_path.write_text(content)
+        except OSError as e:
+            logger.error("Failed to write blocklist: %s", e)
 
     async def _reblock_after(self, domains: set[str], minutes: int):
         """Wait for the duration, then re-block the domains."""
@@ -223,7 +198,6 @@ class BlocklistManager:
             for d in domains:
                 self.active_unblocks.pop(d, None)
             await self._write_blocklist()
-            self._signal_dnsmasq()
             logger.info("Auto re-blocked after %d minutes: %s", minutes, domains)
             if self.on_reblock_callback:
                 for d in domains:

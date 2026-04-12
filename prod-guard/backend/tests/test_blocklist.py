@@ -1,11 +1,12 @@
 """Unit tests for BlocklistManager.
 
-subprocess.run is mocked throughout to avoid actual file writes and dnsmasq signals.
+Path.write_text is mocked throughout to avoid actual file writes.
+dnsmasq reloads automatically via inotify (hostsdir) — no signaling needed.
 """
 
 import asyncio
 import pytest
-from unittest.mock import MagicMock, AsyncMock, call, patch
+from unittest.mock import MagicMock
 
 from blocklist import BlocklistManager, ActiveUnblock
 
@@ -28,16 +29,14 @@ def make_manager(
 
 
 @pytest.fixture
-def mock_subprocess(mocker):
-    """Patch subprocess.run so no files are written and no dnsmasq is signaled."""
-    mock = mocker.patch("blocklist.subprocess.run")
-    mock.return_value = MagicMock(returncode=0, stderr=b"")
-    return mock
+def mock_write(mocker):
+    """Patch Path.write_text so no files are written to disk."""
+    return mocker.patch("pathlib.Path.write_text")
 
 
 @pytest.fixture
-async def manager(mock_subprocess):
-    """A fresh BlocklistManager with subprocess mocked."""
+async def manager(mock_write):
+    """A fresh BlocklistManager with file writes mocked."""
     mgr = make_manager()
     yield mgr
     # Cancel all lingering timer tasks to avoid asyncio warnings
@@ -75,20 +74,18 @@ class TestInit:
 
 
 class TestInitialize:
-    async def test_writes_blocklist_and_signals_dnsmasq(self, mock_subprocess):
+    async def test_writes_blocklist_on_startup(self, mock_write):
         mgr = make_manager()
         await mgr.initialize()
-        # Two subprocess calls: one for `sudo tee` (write), one for `sudo pkill -HUP dnsmasq`
-        assert mock_subprocess.call_count == 2
+        assert mock_write.call_count == 1
 
-    async def test_initial_blocklist_contains_all_domains(self, mock_subprocess):
+    async def test_initial_blocklist_contains_all_domains(self, mock_write):
         mgr = make_manager(
             conditional=["reddit.com"],
             always_blocked=["twitter.com"],
         )
         await mgr.initialize()
-        # Grab the content written to the file (first call, input kwarg)
-        content = mock_subprocess.call_args_list[0].kwargs["input"].decode()
+        content = mock_write.call_args_list[0].args[0]
         assert "reddit.com" in content
         assert "twitter.com" in content
 
@@ -167,7 +164,7 @@ class TestUnblockDomain:
         assert task is not None
         assert isinstance(task, asyncio.Task)
 
-    async def test_extending_unblock_creates_new_timer(self, mock_subprocess):
+    async def test_extending_unblock_creates_new_timer(self, mock_write):
         """Second unblock of the same domain creates a new timer task."""
         mgr = make_manager()
         await mgr.unblock_domain(
@@ -184,12 +181,11 @@ class TestUnblockDomain:
 
         assert second_task is not first_task
 
-        # Cancel both tasks to avoid asyncio warnings
         first_task.cancel()
         second_task.cancel()
         await asyncio.sleep(0)
 
-    async def test_unblock_removes_domain_from_written_blocklist(self, mock_subprocess):
+    async def test_unblock_removes_domain_from_written_blocklist(self, mock_write):
         """After unblocking, the domain should not appear in the written hosts file."""
         mgr = make_manager(
             conditional=["reddit.com", "youtube.com"],
@@ -199,16 +195,11 @@ class TestUnblockDomain:
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
             scope="/*", reason="work", duration_minutes=10,
         )
-        # Get the most recent write call's content
-        write_calls = [
-            c for c in mock_subprocess.call_args_list
-            if "tee" in c.args[0]
-        ]
-        content = write_calls[-1].kwargs["input"].decode()
+        # Most recent write_text call has the updated content
+        content = mock_write.call_args_list[-1].args[0]
         assert "reddit.com" not in content
         assert "youtube.com" in content
 
-        # Cleanup
         for unblock in mgr.active_unblocks.values():
             if unblock.timer_task:
                 unblock.timer_task.cancel()
@@ -219,7 +210,7 @@ class TestUnblockDomain:
 
 
 class TestReblockDomain:
-    async def test_removes_domain_from_active_unblocks(self, mock_subprocess):
+    async def test_removes_domain_from_active_unblocks(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
@@ -230,7 +221,7 @@ class TestReblockDomain:
         await mgr.reblock_domain("reddit.com")
         assert "reddit.com" not in mgr.active_unblocks
 
-    async def test_also_removes_www_variant(self, mock_subprocess):
+    async def test_also_removes_www_variant(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
@@ -241,15 +232,15 @@ class TestReblockDomain:
         await mgr.reblock_domain("reddit.com")
         assert "www.reddit.com" not in mgr.active_unblocks
 
-    async def test_reblock_signals_dnsmasq(self, mock_subprocess):
+    async def test_reblock_writes_blocklist(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
             scope="/*", reason="work", duration_minutes=10,
         )
-        call_count_before = mock_subprocess.call_count
+        call_count_before = mock_write.call_count
         await mgr.reblock_domain("reddit.com")
-        assert mock_subprocess.call_count > call_count_before
+        assert mock_write.call_count > call_count_before
 
     async def test_reblock_nonexistent_domain_is_noop(self, manager):
         """Reblocking a domain not in active_unblocks should not raise."""
@@ -260,7 +251,7 @@ class TestReblockDomain:
 
 
 class TestReblockAll:
-    async def test_clears_all_active_unblocks(self, mock_subprocess):
+    async def test_clears_all_active_unblocks(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
@@ -275,11 +266,11 @@ class TestReblockAll:
         await mgr.reblock_all()
         assert mgr.active_unblocks == {}
 
-    async def test_signals_dnsmasq_after_reblock_all(self, mock_subprocess):
+    async def test_writes_blocklist_after_reblock_all(self, mock_write):
         mgr = make_manager()
-        initial_calls = mock_subprocess.call_count
+        initial_calls = mock_write.call_count
         await mgr.reblock_all()
-        assert mock_subprocess.call_count > initial_calls
+        assert mock_write.call_count > initial_calls
 
 
 # ── get_active_unblocks ────────────────────────────────────────────────────────
@@ -290,19 +281,18 @@ class TestGetActiveUnblocks:
         result = manager.get_active_unblocks()
         assert result == []
 
-    async def test_deduplicates_by_base_domain(self, mock_subprocess):
+    async def test_deduplicates_by_base_domain(self, mock_write):
         """reddit.com and www.reddit.com share the same ActiveUnblock — only one entry."""
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
             scope="/*", reason="work", duration_minutes=10,
         )
-        # Both reddit.com and www.reddit.com are in active_unblocks
         assert "reddit.com" in mgr.active_unblocks
         assert "www.reddit.com" in mgr.active_unblocks
 
         result = mgr.get_active_unblocks()
-        # But get_active_unblocks deduplicates by unblock.domain (== "reddit.com")
+        # get_active_unblocks deduplicates by unblock.domain (== "reddit.com")
         assert len(result) == 1
         assert result[0].domain == "reddit.com"
 
@@ -311,7 +301,7 @@ class TestGetActiveUnblocks:
                 u.timer_task.cancel()
         await asyncio.sleep(0)
 
-    async def test_returns_correct_device_info(self, mock_subprocess):
+    async def test_returns_correct_device_info(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="youtube.com", device_ip="192.168.1.50", device_name="my-phone",
@@ -361,31 +351,30 @@ class TestGetRelatedDomains:
 
 
 class TestWriteBlocklistContent:
-    async def test_header_present(self, mock_subprocess):
+    async def test_header_present(self, mock_write):
         mgr = make_manager(conditional=["reddit.com"], always_blocked=[])
         await mgr._write_blocklist()
-        # _write_blocklist makes exactly 1 subprocess call (sudo tee); index [0]
-        content = mock_subprocess.call_args_list[0].kwargs["input"].decode()
+        content = mock_write.call_args_list[0].args[0]
         assert "Managed by Productivity Guard" in content
 
-    async def test_blocked_domain_uses_null_ip(self, mock_subprocess):
+    async def test_blocked_domain_uses_null_ip(self, mock_write):
         mgr = make_manager(conditional=["reddit.com"], always_blocked=[])
         await mgr._write_blocklist()
-        content = mock_subprocess.call_args_list[0].kwargs["input"].decode()
+        content = mock_write.call_args_list[0].args[0]
         assert "0.0.0.0 reddit.com" in content
 
-    async def test_active_unblocked_domain_absent(self, mock_subprocess):
+    async def test_active_unblocked_domain_absent(self, mock_write):
         mgr = make_manager(conditional=["reddit.com", "youtube.com"], always_blocked=[])
         mgr.active_unblocks["reddit.com"] = MagicMock()
         await mgr._write_blocklist()
-        content = mock_subprocess.call_args_list[0].kwargs["input"].decode()
+        content = mock_write.call_args_list[0].args[0]
         assert "reddit.com" not in content
         assert "youtube.com" in content
 
-    async def test_always_blocked_always_present(self, mock_subprocess):
+    async def test_always_blocked_always_present(self, mock_write):
         mgr = make_manager(conditional=[], always_blocked=["badsite.com"])
         await mgr._write_blocklist()
-        content = mock_subprocess.call_args_list[0].kwargs["input"].decode()
+        content = mock_write.call_args_list[0].args[0]
         assert "badsite.com" in content
 
 
@@ -396,7 +385,7 @@ class TestIsDomainUnblocked:
     def test_returns_false_when_not_unblocked(self, manager):
         assert manager.is_domain_unblocked("reddit.com") is False
 
-    async def test_returns_true_after_unblock(self, mock_subprocess):
+    async def test_returns_true_after_unblock(self, mock_write):
         mgr = make_manager()
         await mgr.unblock_domain(
             domain="reddit.com", device_ip="1.1.1.1", device_name="dev",
