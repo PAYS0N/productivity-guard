@@ -26,7 +26,7 @@ These apply to all projects by default. To disable one, move it to the "Disabled
 
 ### Backend (Python)
 - Language: Python 3.11
-- Test command: `cd backend && source .venv/bin/activate && pytest tests/ -v`
+- Test command: `cd prod-guard/backend && source .venv/bin/activate && pytest tests/ -v`
 - Source directory: `backend/`
 - No formal linter/formatter configured — follow PEP 8 conventions
 
@@ -90,6 +90,6 @@ These apply to all projects by default. To disable one, move it to the "Disabled
 
 ## Build & Lint Gate
 
-- After any backend change, run `cd backend && source .venv/bin/activate && pytest tests/ -v`. All tests must pass.
+- After any backend change, run `cd prod-guard/backend && source .venv/bin/activate && pytest tests/ -v`. All tests must pass.
 - No formal lint step; follow PEP 8 and existing code conventions.
 - When tests flag an issue, fix the underlying problem — do not suppress.

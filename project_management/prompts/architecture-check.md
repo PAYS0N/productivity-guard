@@ -14,7 +14,7 @@ If no baseline exists yet, note that this run will produce the initial baseline 
 
 ### Step 2 — Map Current Architecture
 
-Read every file in `backend/` and `extension/`. For each file, record:
+Read every file in `prod-guard/backend/` and `prod-guard/extension/`. For each file, record:
 - All explicit references to other files (imports, inclusions, links, or declared dependencies)
 - Whether it accesses a shared resource (calls to `subprocess.run` for dnsmasq, `aiosqlite` for database, `httpx` for HA API, or `anthropic` for the Claude API)
 - Whether it changes shared state (writes to `active_unblocks`, `force_blocked_devices`, the SQLite database, or the dnsmasq hosts file)

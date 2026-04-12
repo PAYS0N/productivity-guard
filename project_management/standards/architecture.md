@@ -20,21 +20,21 @@ Files are organized in layers. A module may only reference its own layer or lowe
 
 | Layer | Modules | Responsibility |
 |-------|---------|----------------|
-| 0 — Entry | `backend/main.py` | FastAPI app: route definitions, app lifecycle, config loading, global `force_blocked_devices` state |
-| 1 — Domain | `backend/blocklist.py` | DNS blocklist management: hosts file writes, dnsmasq SIGHUP, unblock scheduling, `active_unblocks` state |
-| 1 — Domain | `backend/llm_gatekeeper.py` | Claude API interaction: prompt construction, API call, response parsing, access decisions |
-| 1 — Domain | `backend/ha_client.py` | Home Assistant REST client: room data queries, entity state, service calls |
-| 1 — Domain | `backend/database.py` | Request history: async SQLite read/write via aiosqlite |
-| 2 — Data | `backend/models.py` | Pydantic models for API types and internal data structures; no logic |
+| 0 — Entry | `prod-guard/backend/main.py` | FastAPI app: route definitions, app lifecycle, config loading, global `force_blocked_devices` state |
+| 1 — Domain | `prod-guard/backend/blocklist.py` | DNS blocklist management: hosts file writes, dnsmasq SIGHUP, unblock scheduling, `active_unblocks` state |
+| 1 — Domain | `prod-guard/backend/llm_gatekeeper.py` | Claude API interaction: prompt construction, API call, response parsing, access decisions |
+| 1 — Domain | `prod-guard/backend/ha_client.py` | Home Assistant REST client: room data queries, entity state, service calls |
+| 1 — Domain | `prod-guard/backend/database.py` | Request history: async SQLite read/write via aiosqlite |
+| 2 — Data | `prod-guard/backend/models.py` | Pydantic models for API types and internal data structures; no logic |
 
 ### Extension
 
 | Layer | Modules | Responsibility |
 |-------|---------|----------------|
-| 0 — Entry | `extension/background.js` | Request interception, active scope tracking, backend API communication |
-| 1 — UI | `extension/blocked.js` | Access request form on the blocked page |
-| 1 — UI | `extension/popup.js` | Toolbar popup: active unblock status display |
-| 1 — UI | `extension/options.js` | User settings: backend URL and device IP configuration |
+| 0 — Entry | `prod-guard/extension/background.js` | Request interception, active scope tracking, backend API communication |
+| 1 — UI | `prod-guard/extension/blocked.js` | Access request form on the blocked page |
+| 1 — UI | `prod-guard/extension/popup.js` | Toolbar popup: active unblock status display |
+| 1 — UI | `prod-guard/extension/options.js` | User settings: backend URL and device IP configuration |
 
 **Rule: no upward references.** Domain modules (`blocklist`, `llm_gatekeeper`, `ha_client`, `database`) must never import from `main.py`. Extension UI scripts must not import from `background.js`.
 

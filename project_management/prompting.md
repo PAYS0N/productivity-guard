@@ -15,9 +15,13 @@ If management decisions must be made before the prompt can be composed, ask the 
 | Task involves... | Load these cdocs |
 |-----------------|-----------------|
 | Overall system, project goals, or cross-cutting concerns | `cdocs/project-overview.md` |
-| Backend API, access request flow, LLM gating, HA integration | `cdocs/project-overview.md` |
-| DNS blocking, blocklist management, dnsmasq | `cdocs/project-overview.md` |
-| Firefox extension, request interception, scope management | `cdocs/project-overview.md` |
+| Backend API, request flow, endpoints, config, models | `cdocs/backend-api.md` |
+| LLM evaluation, system prompt, Claude API, access decisions | `cdocs/llm-gatekeeper.md` |
+| DNS blocking, dnsmasq blocklist, unblock scheduling | `cdocs/dns-blocklist.md` |
+| Home Assistant, Bermuda room tracking, HA automations | `cdocs/ha-integration.md` |
+| Request history, SQLite database, logging | `cdocs/database.md` |
+| Firefox extension, request interception, scope matching, UI pages | `cdocs/extension.md` |
+| Deployment, systemd, setup scripts, network, DoH blocking | `cdocs/deployment.md` |
 
 ## Model recommendation
 
