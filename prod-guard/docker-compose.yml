@@ -2,8 +2,7 @@ services:
   backend:
     build: .
     env_file: .env
-    ports:
-      - "8800:8800"
+    network_mode: host
     volumes:
       - /etc/productivity-guard/:/etc/productivity-guard/
       - ./backend/config.yaml:/app/config.yaml:ro
