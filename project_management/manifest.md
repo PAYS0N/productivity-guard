@@ -56,7 +56,6 @@
 | [prod-guard/backend/pyproject.toml](../prod-guard/backend/pyproject.toml) | Python project config: pytest settings (asyncio_mode, testpaths, pythonpath) |
 | [prod-guard/backend/requirements.txt](../prod-guard/backend/requirements.txt) | Runtime dependencies |
 | [prod-guard/backend/requirements-dev.txt](../prod-guard/backend/requirements-dev.txt) | Development/test dependencies |
-| [prod-guard/backend/productivity-guard.service](../prod-guard/backend/productivity-guard.service) | systemd service unit for running the backend on the Pi |
 
 ---
 
@@ -98,9 +97,17 @@
 
 ---
 
+## Docker
+
+| File | Description |
+|------|-------------|
+| [prod-guard/Dockerfile](../prod-guard/Dockerfile) | Container image: python:3.11-slim, installs deps, runs uvicorn on port 8800 |
+| [prod-guard/docker-compose.yml](../prod-guard/docker-compose.yml) | Single-service compose: bridge networking, bind-mounts blocklist dir and config, pg-data volume for SQLite |
+| [prod-guard/.env.example](../prod-guard/.env.example) | Template for required secrets: ANTHROPIC_API_KEY, HA_TOKEN |
+
 ## Setup
 
 | File | Description |
 |------|-------------|
-| [prod-guard/setup.sh](../prod-guard/setup.sh) | One-time Pi setup: venv, dnsmasq config, iptables, sudoers, systemd service install |
+| [prod-guard/setup.sh](../prod-guard/setup.sh) | One-time Pi setup: dnsmasq hostsdir config, iptables, Docker install, DB migration, container start |
 | [prod-guard/setup_doh_block.sh](../prod-guard/setup_doh_block.sh) | Creates dnsmasq config to block DNS-over-HTTPS providers (canary domain + hostname blocking) |

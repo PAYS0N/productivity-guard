@@ -12,7 +12,7 @@ FastAPI app running on the Pi at `:8800`. Serves as the orchestration layer: rec
 
 ## Config loading
 
-Config is loaded at module import time from `config.yaml` (path from `PG_CONFIG` env var or adjacent `config.yaml`). Components are instantiated as module-level globals: `db`, `blocklist`, `ha_client`, `llm`. The `force_blocked_devices: set[str]` is also module-level global state.
+Config is loaded at module import time from `config.yaml` (path from `PG_CONFIG` env var or adjacent `config.yaml`). Secrets `ANTHROPIC_API_KEY` and `HA_TOKEN` are required as environment variables — the backend raises `RuntimeError` at startup if either is absent. Components are instantiated as module-level globals: `db`, `blocklist`, `ha_client`, `llm`. The `force_blocked_devices: set[str]` is also module-level global state.
 
 ## App lifecycle
 

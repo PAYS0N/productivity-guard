@@ -1,4 +1,0 @@
-{
-  "task": "migrate this setup to docker so that no system services are required on the pi; just docker",
-  "status_item_id": null
-}
