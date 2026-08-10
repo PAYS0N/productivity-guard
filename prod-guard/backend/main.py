@@ -72,7 +72,7 @@ ha_client = HAClient(
 
 llm = LLMGatekeeper(
     api_key=anthropic_key,
-    model=config["anthropic"].get("model", "claude-sonnet-4-20250514"),
+    model=config["anthropic"].get("model", "claude-sonnet-5"),
     max_tokens=config["anthropic"].get("max_tokens", 500),
     temperature=config["anthropic"].get("temperature", 0.2),
     system_prompt_path=str(Path(__file__).parent / "system_prompt.txt"),

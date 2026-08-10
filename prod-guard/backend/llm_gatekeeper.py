@@ -17,7 +17,7 @@ class LLMGatekeeper:
     def __init__(
         self,
         api_key: str,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-sonnet-5",
         max_tokens: int = 500,
         temperature: float = 0.2,
         system_prompt_path: str = "system_prompt.txt",
